@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:"
+    />
+    <title>DroidDrop</title>
+    <link rel="stylesheet" href="style.css" />
+    <script type="module" src="ui/renderer.js"></script>
+  </head>
+  <body>
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-icon">↗</div>
+        <strong>DroidDrop</strong>
+      </div>
+      <div class="side-heading">
+        <span>你的设备</span
+        ><button
+          id="refresh"
+          class="icon-btn"
+          title="刷新设备"
+          aria-label="刷新设备"
+        >
+          ↻
+        </button>
+      </div>
+      <div id="devices" class="devices"></div>
+      <div class="sidebar-bottom">
+        <div>
+          <strong>连接你的设备</strong>
+          <p>通过 USB 连接并开启 USB 调试，或启动 Android 模拟器。</p>
+        </div>
+      </div>
+    </aside>
+    <main>
+      <header>
+        <div class="header-left">
+          <h1 id="title">文件传输</h1>
+          <p id="subtitle">你的 Mac 和 Android，轻松互传。</p>
+        </div>
+      </header>
+      <section class="content">
+        <div id="empty" class="empty">
+          <div class="empty-art" aria-hidden="true">↔</div>
+          <h2>一切，从连接开始。</h2>
+          <p>
+            连接 Android 设备或启动模拟器，<br />打开第一台可用设备，或从左侧选择。
+          </p>
+          <button id="empty-refresh" class="button secondary">
+            ↻ &nbsp; 查找并打开设备
+          </button>
+        </div>
+        <div id="browser" class="browser hidden">
+          <div class="toolbar">
+            <div>
+              <h2>设备文件 <span class="count" id="file-count"></span></h2>
+            </div>
+            <div class="toolbar-actions">
+              <button id="new-folder" class="button secondary">
+                ＋ 新建文件夹</button
+              ><button id="upload" class="button primary">
+                <span>↑</span> 发送文件到设备
+              </button>
+            </div>
+          </div>
+          <div class="pathbar">
+            <button id="up" class="path-up" title="上一级" aria-label="上一级">
+              ↑</button
+            ><span id="path"></span
+            ><button
+              id="refresh-files"
+              class="icon-btn"
+              title="刷新文件"
+              aria-label="刷新文件"
+            >
+              ↻
+            </button>
+          </div>
+          <div class="list-heading">
+            <button data-sort="name" class="sort-heading">名称 ↑</button
+            ><button data-sort="modifiedAt" class="sort-heading">
+              修改时间</button
+            ><span></span>
+          </div>
+          <div id="files" class="file-list"></div>
+          <div id="file-empty" class="file-empty hidden">
+            这个文件夹是空的。<br /><span>发送文件，让它出现在这里。</span>
+          </div>
+        </div>
+      </section>
+      <footer>
+        <span
+          ><i class="status-dot"></i><span id="status">等待设备连接</span></span
+        >
+      </footer>
+    </main>
+    <dialog id="folder-dialog" class="folder-dialog">
+      <form id="folder-form">
+        <h2>新建文件夹</h2>
+        <p>在当前设备目录中创建文件夹。</p>
+        <label for="folder-name">文件夹名称</label>
+        <input
+          id="folder-name"
+          type="text"
+          autocomplete="off"
+          required
+          autofocus
+        />
+        <div class="dialog-actions">
+          <button id="cancel-folder" class="button secondary" type="button">
+            取消</button
+          ><button class="button primary" type="submit">创建</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog id="rename-dialog" class="folder-dialog">
+      <form id="rename-form">
+        <h2>重命名</h2>
+        <p>修改文件或文件夹的名称。</p>
+        <label for="rename-name">新名称</label>
+        <input id="rename-name" type="text" autocomplete="off" required />
+        <p id="rename-error" class="rename-error hidden" role="alert"></p>
+        <div class="dialog-actions">
+          <button id="cancel-rename" class="button secondary" type="button">
+            取消
+          </button>
+          <button id="confirm-rename" class="button primary" type="submit">
+            保存
+          </button>
+        </div>
+      </form>
+    </dialog>
+    <dialog
+      id="confirm-dialog"
+      class="folder-dialog"
+      aria-labelledby="confirm-title"
+      aria-describedby="confirm-detail"
+    >
+      <form method="dialog">
+        <h2 id="confirm-title"></h2>
+        <p id="confirm-detail"></p>
+        <div class="dialog-actions">
+          <button class="button secondary" value="cancel" autofocus>
+            取消
+          </button>
+          <button id="confirm-action" class="button" value="confirm"></button>
+        </div>
+      </form>
+    </dialog>
+    <div id="toast" class="toast hidden" role="status"></div>
+  </body>
+</html>

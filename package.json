@@ -1,0 +1,36 @@
+{
+  "name": "droiddrop",
+  "version": "1.0.0",
+  "description": "Move files between your Mac and Android devices with ADB",
+  "main": "build/node/src/main.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json && tsc -p tsconfig.renderer.json && cp src/index.html src/style.css build/",
+    "start": "npm run build && electron .",
+    "test": "npm run build && node --test build/node/test/*.test.js",
+    "dist": "npm run build && electron-builder --mac",
+    "format": "prettier --write \"src/**/*.{ts,html,css}\" \"test/**/*.ts\" tsconfig*.json package.json"
+  },
+  "devDependencies": {
+    "electron": "^37.0.0",
+    "electron-builder": "^26.0.12",
+    "prettier": "^3.9.10",
+    "typescript": "^7.0.2"
+  },
+  "build": {
+    "appId": "com.droiddrop.app",
+    "productName": "DroidDrop",
+    "files": [
+      "build/**/*",
+      "!build/node/test/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "category": "public.app-category.utilities",
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "icon": "assets/icon.icns"
+    }
+  }
+}

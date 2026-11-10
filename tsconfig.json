@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "Node16",
+    "moduleResolution": "Node16",
+    "lib": ["ES2022", "DOM"],
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "rootDir": ".",
+    "outDir": "build/node"
+  },
+  "include": [
+    "src/adb.ts",
+    "src/main.ts",
+    "src/preload.ts",
+    "src/sort.ts",
+    "src/shared/**/*.ts",
+    "test/**/*.ts"
+  ]
+}
