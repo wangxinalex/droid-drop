@@ -4,12 +4,29 @@ import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { captureScreenshot } from "../src/adb";
-import { ScreenshotStore } from "../src/screenshot";
+import { saveScreenshot } from "../src/screenshot";
 
 const png = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/a3sAAAAASUVORK5CYII=",
   "base64",
 );
+
+test("saves captures directly with unique filenames without overwriting", async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "droiddrop-direct-"));
+  try {
+    const time = new Date(2026, 10, 26, 22, 32, 10, 123);
+    const first = await saveScreenshot(png, root, time);
+    const second = await saveScreenshot(png, root, time);
+    assert.notEqual(first, second);
+    assert.equal(path.dirname(first), root);
+    assert.equal(path.basename(first), "DroidDrop-2026-11-26-22-32-10.png");
+    assert.equal(path.basename(second), "DroidDrop-2026-11-26-22-32-10-1.png");
+    assert.deepEqual(await fs.readFile(first), png);
+    assert.deepEqual(await fs.readFile(second), png);
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});
 
 test("captures binary PNG from the selected device without altering bytes", async () => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "droiddrop-screen-"));
@@ -34,25 +51,6 @@ test("captures binary PNG from the selected device without altering bytes", asyn
   }
 });
 
-test("stores each window's latest capture and saves its exact bytes", async () => {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), "droiddrop-save-"));
-  try {
-    const store = new ScreenshotStore();
-    store.set(1, png);
-    const newer = Buffer.concat([png, Buffer.from([1, 2, 3])]);
-    store.set(2, newer);
-    const output = path.join(root, "screenshot.png");
-    await store.save(1, output);
-    assert.deepEqual(await fs.readFile(output), png);
-    store.clear(1);
-    await assert.rejects(store.save(1, output), /截屏/);
-    await store.save(2, output);
-    assert.deepEqual(await fs.readFile(output), newer);
-  } finally {
-    await fs.rm(root, { recursive: true, force: true });
-  }
-});
-
 test("cancelling a screenshot aborts an unresponsive adb process", async () => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "droiddrop-abort-"));
   const old = process.env.ADB_PATH;
@@ -71,19 +69,13 @@ test("cancelling a screenshot aborts an unresponsive adb process", async () => {
   }
 });
 
-test("failed save removes its temporary file and leaves the target intact", async () => {
+test("reports save failures without changing existing screenshots", async () => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "droiddrop-save-fail-"));
   try {
-    const store = new ScreenshotStore();
-    store.set(1, png);
-    const target = path.join(root, "existing.png");
-    await fs.mkdir(target);
-    await fs.writeFile(path.join(target, "keep"), "original");
-    await assert.rejects(store.save(1, target));
-    assert.equal(
-      await fs.readFile(path.join(target, "keep"), "utf8"),
-      "original",
-    );
+    const existing = path.join(root, "existing.png");
+    await fs.writeFile(existing, "original");
+    await assert.rejects(saveScreenshot(png, path.join(root, "missing")));
+    assert.equal(await fs.readFile(existing, "utf8"), "original");
     assert.deepEqual(await fs.readdir(root), ["existing.png"]);
   } finally {
     await fs.rm(root, { recursive: true, force: true });

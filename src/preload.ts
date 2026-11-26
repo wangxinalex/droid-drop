@@ -7,8 +7,6 @@ import type {
 const api: DroidDropAPI = {
   captureScreenshot: (serial: string) =>
     ipcRenderer.invoke("capture-screenshot", serial),
-  discardScreenshot: () => ipcRenderer.invoke("discard-screenshot"),
-  saveScreenshot: () => ipcRenderer.invoke("save-screenshot"),
   onConfirmation: (callback: (request: ConfirmationRequest) => void) =>
     ipcRenderer.on(
       "confirmation-request",

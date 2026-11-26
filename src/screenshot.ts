@@ -1,30 +1,44 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 
-export class ScreenshotStore {
-  private readonly captures = new Map<number, Buffer>();
+export async function saveScreenshot(
+  image: Buffer,
+  directory: string,
+  capturedAt = new Date(),
+): Promise<string> {
+  const pad = (value: number) => String(value).padStart(2, "0");
+  const date = [
+    capturedAt.getFullYear(),
+    pad(capturedAt.getMonth() + 1),
+    pad(capturedAt.getDate()),
+  ].join("-");
+  const time = [
+    capturedAt.getHours(),
+    capturedAt.getMinutes(),
+    capturedAt.getSeconds(),
+  ]
+    .map(pad)
+    .join("-");
+  const timestamp = `${date}-${time}`;
 
-  set(contentsId: number, image: Buffer): void {
-    this.captures.set(contentsId, image);
-  }
-
-  clear(contentsId: number): void {
-    this.captures.delete(contentsId);
-  }
-
-  async save(contentsId: number, destination: string): Promise<void> {
-    const image = this.captures.get(contentsId);
-    if (!image) throw new Error("没有可保存的截屏，请重新截屏。");
-    // 在同一目录写完临时文件后再替换，写入失败时保留原文件。
-    const tempDir = await fs.mkdtemp(
-      path.join(path.dirname(destination), ".droiddrop-"),
-    );
+  for (let suffix = 0; ; suffix++) {
+    const name = `DroidDrop-${timestamp}${suffix ? `-${suffix}` : ""}.png`;
+    const destination = path.join(directory, name);
+    let file;
     try {
-      const tempFile = path.join(tempDir, "screenshot.png");
-      await fs.writeFile(tempFile, image);
-      await fs.rename(tempFile, destination);
-    } finally {
-      await fs.rm(tempDir, { recursive: true, force: true });
+      file = await fs.open(destination, "wx");
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "EEXIST") continue;
+      throw error;
+    }
+    try {
+      await file.writeFile(image);
+      await file.close();
+      return destination;
+    } catch (error) {
+      await file.close().catch(() => {});
+      await fs.unlink(destination).catch(() => {});
+      throw error;
     }
   }
 }
