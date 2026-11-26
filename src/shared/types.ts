@@ -26,6 +26,9 @@ export interface ConfirmationRequest {
 }
 
 export interface DroidDropAPI {
+  captureScreenshot(serial: string): Promise<string>;
+  discardScreenshot(): Promise<void>;
+  saveScreenshot(): Promise<{ canceled?: boolean; destination?: string }>;
   onConfirmation(callback: (request: ConfirmationRequest) => void): void;
   respondConfirmation(id: string, confirmed: boolean): void;
   devices(): Promise<Device[]>;

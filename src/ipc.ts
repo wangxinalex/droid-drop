@@ -3,6 +3,7 @@ import {
   ipcMain,
   dialog,
   shell,
+  nativeImage,
   type IpcMainInvokeEvent,
   type IpcMainEvent,
 } from "electron";
@@ -18,7 +19,9 @@ import {
   createDirectory,
   removeEntry,
   renameEntry,
+  captureScreenshot,
 } from "./adb";
+import { ScreenshotStore } from "./screenshot";
 import type { ConfirmationRequest, EntryInfo } from "./shared/types";
 
 function windowFor(event: IpcMainInvokeEvent): BrowserWindow {
@@ -58,6 +61,51 @@ function confirmAction(
 
 // 界面通过 preload 暴露的 API 请求这些操作。
 export function registerIpcHandlers(): void {
+  const screenshots = new ScreenshotStore();
+  const watchedContents = new WeakSet<Electron.WebContents>();
+  const capturesInProgress = new Map<number, AbortController>();
+  ipcMain.handle("capture-screenshot", async (event, serial: string) => {
+    const contents = event.sender;
+    windowFor(event);
+    if (!watchedContents.has(contents)) {
+      watchedContents.add(contents);
+      contents.once("destroyed", () => {
+        capturesInProgress.get(contents.id)?.abort();
+        screenshots.clear(contents.id);
+      });
+    }
+    screenshots.clear(contents.id);
+    capturesInProgress.get(contents.id)?.abort();
+    const controller = new AbortController();
+    capturesInProgress.set(contents.id, controller);
+    try {
+      const image = await captureScreenshot(serial, controller.signal);
+      if (nativeImage.createFromBuffer(image).isEmpty())
+        throw new Error("设备截屏失败：无法读取 PNG 图像。");
+      if (contents.isDestroyed() || controller.signal.aborted)
+        throw new Error("截屏已取消。");
+      screenshots.set(contents.id, image);
+      return image.toString("base64");
+    } finally {
+      if (capturesInProgress.get(contents.id) === controller)
+        capturesInProgress.delete(contents.id);
+    }
+  });
+  ipcMain.handle("discard-screenshot", (event) => {
+    capturesInProgress.get(event.sender.id)?.abort();
+    screenshots.clear(event.sender.id);
+  });
+  ipcMain.handle("save-screenshot", async (event) => {
+    const selected = await dialog.showSaveDialog(windowFor(event), {
+      title: "保存设备截屏",
+      defaultPath: `DroidDrop-${new Date().toISOString().replace(/[:.]/g, "-")}.png`,
+      filters: [{ name: "PNG 图片", extensions: ["png"] }],
+      properties: ["showOverwriteConfirmation", "createDirectory"],
+    });
+    if (selected.canceled || !selected.filePath) return { canceled: true };
+    await screenshots.save(event.sender.id, selected.filePath);
+    return { destination: selected.filePath };
+  });
   ipcMain.handle("devices", async () =>
     parseDevices(await adb(["devices", "-l"])),
   );

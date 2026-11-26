@@ -174,6 +174,18 @@ header {
   -webkit-app-region: drag;
   user-select: none;
   padding: 54px 44px 27px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.header-left {
+  min-width: 0;
+}
+#screenshot {
+  -webkit-app-region: no-drag;
+  flex-shrink: 0;
+  min-width: 118px;
 }
 h1 {
   margin: 0 0 7px;
@@ -198,30 +210,45 @@ header p {
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 18px;
   text-align: center;
   padding: 20px;
+  border-radius: 16px;
+  background: #f7f9f7;
 }
 .empty-art {
   display: grid;
   place-items: center;
-  width: 56px;
-  height: 56px;
-  margin-bottom: 20px;
-  border: 1px solid #dfe8e0;
-  border-radius: 16px;
-  color: #72977b;
-  font-size: 31px;
+  flex-shrink: 0;
+  width: 96px;
+  height: 96px;
+  border-radius: 30px;
+  background: #e4eee7;
+  color: #315c40;
+  font-size: 42px;
 }
 .empty h2 {
-  margin: 0 0 9px;
-  font-size: 18px;
-  font-weight: 600;
+  margin: 0;
+  color: #24362a;
+  font-size: 24px;
+  font-weight: 700;
 }
 .empty p {
-  margin: 0 0 22px;
-  color: #89958c;
-  font-size: 12px;
-  line-height: 1.8;
+  margin: 0;
+  color: #66796b;
+  font-size: 14px;
+  line-height: 22px;
+}
+.empty .button.primary {
+  min-width: 220px;
+  padding: 12px 20px;
+  border-color: #315c40;
+  border-radius: 10px;
+  background: #315c40;
+  font-size: 14px;
+}
+.empty .button.primary:hover {
+  background: #3e704e;
 }
 .button {
   padding: 9px 13px;
@@ -437,6 +464,53 @@ footer {
 }
 .folder-dialog::backdrop {
   background: #1c302466;
+}
+.screenshot-dialog {
+  width: min(500px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  padding: 24px;
+  border: 1px solid #e2e8e3;
+  border-radius: 12px;
+  color: #252b28;
+  box-shadow: 0 16px 50px #1d302425;
+}
+.screenshot-dialog::backdrop {
+  background: #1c302466;
+}
+.screenshot-dialog h2 {
+  margin: 0 0 8px;
+  font-size: 17px;
+}
+.screenshot-dialog > p {
+  margin: 0 0 16px;
+  color: #849188;
+  font-size: 12px;
+}
+.screenshot-preview {
+  height: min(387px, calc(100vh - 230px));
+  min-height: 120px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  place-items: center;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #f4f7f4;
+  color: #87928a;
+  font-size: 12px;
+}
+.screenshot-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.screenshot-dialog .screenshot-error {
+  margin: 10px 0 0;
+  color: #ad5147;
+  overflow-wrap: anywhere;
+}
+.screenshot-dialog .dialog-actions {
+  margin-top: 20px;
 }
 .folder-dialog h2 {
   margin: 0 0 8px;
