@@ -81,14 +81,22 @@ function findAdb(): string {
   );
 }
 
-export function adb(args: string[], options: { binary: true }): Promise<Buffer>;
+interface AdbOptions {
+  signal?: AbortSignal;
+  timeout?: number;
+}
+
+export function adb(
+  args: string[],
+  options: AdbOptions & { binary: true },
+): Promise<Buffer>;
 export function adb(
   args: string[],
   options?: { binary?: false },
 ): Promise<string>;
 export async function adb(
   args: string[],
-  options: { binary?: boolean } = {},
+  options: AdbOptions & { binary?: boolean } = {},
 ): Promise<string | Buffer> {
   try {
     if (options.binary) {
@@ -96,6 +104,8 @@ export async function adb(
         encoding: "buffer",
         maxBuffer: 64 * 1024 * 1024,
         windowsHide: true,
+        signal: options.signal,
+        timeout: options.timeout,
       });
       return stdout;
     }
@@ -106,6 +116,7 @@ export async function adb(
     });
     return stdout;
   } catch (error) {
+    if (options.signal?.aborted) throw new Error("截屏已取消。");
     const failure = error as NodeJS.ErrnoException & {
       stderr?: string | Buffer;
     };
@@ -113,8 +124,30 @@ export async function adb(
       throw new Error(
         "找不到 adb。请安装 Android SDK Platform Tools，或设置 ADB_PATH。",
       );
-    throw new Error(String(failure.stderr || failure.message).trim());
+    const stderr = failure.stderr?.toString().trim();
+    throw new Error(stderr || failure.message);
   }
+}
+
+export async function captureScreenshot(
+  serial: string,
+  signal?: AbortSignal,
+): Promise<Buffer> {
+  if (!serial || serial.startsWith("-")) throw new Error("设备标识无效");
+  const image = await adb(["-s", serial, "exec-out", "screencap", "-p"], {
+    binary: true,
+    signal,
+    timeout: 30_000,
+  });
+  const signature = Buffer.from([
+    0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+  ]);
+  if (
+    image.length <= signature.length ||
+    !image.subarray(0, 8).equals(signature)
+  )
+    throw new Error("设备截屏失败：返回的 PNG 数据无效。");
+  return image;
 }
 
 export async function listFiles(

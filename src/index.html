@@ -42,15 +42,16 @@
           <h1 id="title">文件传输</h1>
           <p id="subtitle">你的 Mac 和 Android，轻松互传。</p>
         </div>
+        <button id="screenshot" class="button secondary hidden" type="button">
+          ▣ &nbsp; 设备截屏
+        </button>
       </header>
       <section class="content">
         <div id="empty" class="empty">
           <div class="empty-art" aria-hidden="true">↔</div>
-          <h2>一切，从连接开始。</h2>
-          <p>
-            连接 Android 设备或启动模拟器，<br />打开第一台可用设备，或从左侧选择。
-          </p>
-          <button id="empty-refresh" class="button secondary">
+          <h2>连接你的 Android 设备</h2>
+          <p>使用 USB 连接设备并开启 USB 调试，<br />或启动 Android 模拟器。</p>
+          <button id="empty-refresh" class="button primary">
             ↻ &nbsp; 查找并打开设备
           </button>
         </div>
@@ -98,6 +99,31 @@
         >
       </footer>
     </main>
+    <dialog
+      id="screenshot-dialog"
+      class="screenshot-dialog"
+      aria-labelledby="screenshot-title"
+      aria-describedby="screenshot-description"
+    >
+      <h2 id="screenshot-title">设备截屏</h2>
+      <p id="screenshot-description"></p>
+      <div class="screenshot-preview">
+        <img id="screenshot-image" class="hidden" alt="设备截屏预览" />
+        <span id="screenshot-message" role="status">正在截屏…</span>
+      </div>
+      <p id="screenshot-error" class="screenshot-error hidden" role="alert"></p>
+      <div class="dialog-actions">
+        <button id="retake-screenshot" class="button secondary" type="button">
+          重新截屏
+        </button>
+        <button id="cancel-screenshot" class="button secondary" type="button">
+          取消
+        </button>
+        <button id="save-screenshot" class="button primary" type="button">
+          保存到 Mac
+        </button>
+      </div>
+    </dialog>
     <dialog id="folder-dialog" class="folder-dialog">
       <form id="folder-form">
         <h2>新建文件夹</h2>

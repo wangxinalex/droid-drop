@@ -22,6 +22,8 @@ const dialog = (id: string): HTMLDialogElement =>
   element(id) as HTMLDialogElement;
 
 let renameTarget: { serial: string; dir: string; name: string } | null = null;
+let screenshotRequest = 0;
+let screenshotSerial: string | null = null;
 
 const state: {
   devices: Device[];
@@ -109,6 +111,15 @@ async function refreshDevices(quiet = false, openFirst = false) {
     ) {
       state.serial = null;
       state.request++;
+      if (dialog("screenshot-dialog").open) {
+        button("retake-screenshot").disabled = true;
+        const hasPreview = $("screenshot-image").hasAttribute("src");
+        $("screenshot-error").textContent = hasPreview
+          ? "设备已断开，仍可保存已获取的截屏。"
+          : "设备已断开，无法重新截屏。";
+        $("screenshot-error").classList.remove("hidden");
+      }
+      button("screenshot").classList.add("hidden");
       $("browser").classList.add("hidden");
       $("empty").classList.remove("hidden");
       $("title").textContent = "文件传输";
@@ -135,6 +146,7 @@ function selectDevice(device: Device) {
   state.path = "/sdcard";
   $("title").textContent = deviceName(device);
   $("subtitle").textContent = device.serial;
+  button("screenshot").classList.remove("hidden");
   $("empty").classList.add("hidden");
   $("browser").classList.remove("hidden");
   $("status").textContent = "设备已连接";
@@ -216,10 +228,92 @@ function setBusy(busy: boolean, message = "") {
   button("up").disabled = busy || state.path === "/";
   button("refresh-files").disabled = busy;
   button("refresh").disabled = busy;
+  button("screenshot").disabled = busy;
   $("browser").classList.toggle("busy", busy);
-  $("status").textContent = busy ? message : "设备已连接";
+  $("status").textContent = busy
+    ? message
+    : state.serial
+      ? "设备已连接"
+      : "等待设备连接";
   renderDevices();
 }
+
+async function takeScreenshot() {
+  const serial = screenshotSerial;
+  if (state.busy || !serial || serial !== state.serial) return;
+  const request = ++screenshotRequest;
+  const image = $("screenshot-image") as HTMLImageElement;
+  image.removeAttribute("src");
+  image.classList.add("hidden");
+  $("screenshot-message").textContent = "正在截屏…";
+  $("screenshot-message").classList.remove("hidden");
+  $("screenshot-error").classList.add("hidden");
+  button("retake-screenshot").disabled = true;
+  button("save-screenshot").disabled = true;
+  setBusy(true, "正在截屏…");
+  try {
+    const png = await window.droiddrop.captureScreenshot(serial);
+    if (request !== screenshotRequest || !dialog("screenshot-dialog").open) {
+      await window.droiddrop.discardScreenshot();
+      return;
+    }
+    image.src = `data:image/png;base64,${png}`;
+    image.classList.remove("hidden");
+    $("screenshot-message").classList.add("hidden");
+    button("save-screenshot").disabled = false;
+  } catch (error) {
+    if (request === screenshotRequest && dialog("screenshot-dialog").open) {
+      $("screenshot-message").textContent = "未能获取截屏";
+      $("screenshot-error").textContent = errorMessage(error);
+      $("screenshot-error").classList.remove("hidden");
+    }
+  } finally {
+    button("retake-screenshot").disabled = screenshotSerial !== state.serial;
+    setBusy(false);
+  }
+}
+
+$("screenshot").addEventListener("click", () => {
+  if (state.busy || !state.serial) return;
+  screenshotSerial = state.serial;
+  const device = state.devices.find((item) => item.serial === screenshotSerial);
+  $("screenshot-description").textContent =
+    `${device ? deviceName(device) : screenshotSerial} · 预览截屏后可保存到 Mac`;
+  dialog("screenshot-dialog").showModal();
+  void takeScreenshot();
+});
+$("retake-screenshot").addEventListener("click", () => void takeScreenshot());
+$("cancel-screenshot").addEventListener("click", () =>
+  dialog("screenshot-dialog").close(),
+);
+$("screenshot-dialog").addEventListener("close", () => {
+  screenshotRequest++;
+  screenshotSerial = null;
+  ($("screenshot-image") as HTMLImageElement).removeAttribute("src");
+  void window.droiddrop.discardScreenshot();
+});
+$("save-screenshot").addEventListener("click", async () => {
+  if (state.busy || !screenshotSerial) return;
+  setBusy(true, "正在保存截屏…");
+  button("retake-screenshot").disabled = true;
+  button("save-screenshot").disabled = true;
+  button("cancel-screenshot").disabled = true;
+  try {
+    const result = await window.droiddrop.saveScreenshot();
+    if (!result.canceled) {
+      dialog("screenshot-dialog").close();
+      toast(`已保存到 ${result.destination}`);
+    }
+  } catch (error) {
+    $("screenshot-error").textContent = errorMessage(error);
+    $("screenshot-error").classList.remove("hidden");
+  } finally {
+    button("retake-screenshot").disabled = screenshotSerial !== state.serial;
+    button("save-screenshot").disabled = false;
+    button("cancel-screenshot").disabled = false;
+    setBusy(false);
+  }
+});
 async function upload() {
   if (state.busy || !state.serial) return;
   setBusy(true, "正在发送文件…");
